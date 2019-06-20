@@ -5,6 +5,7 @@ namespace App\Command;
 use App\Entity\Product;
 use App\Entity\ProductCategory;
 use App\Repository\ProductRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,13 +35,24 @@ final class ProductListCommand extends Command
         $this
             ->setName('product:list')
             ->addArgument('category', InputArgument::OPTIONAL, 'Category code')
-            ->addOption('with-double-join', '', InputOption::VALUE_NONE);
+            ->addOption('with-double-join', '', InputOption::VALUE_NONE)
+            ->addOption('fetch-join-collection', '', InputOption::VALUE_NONE)
+            ->addOption('with-output-walkers', '', InputOption::VALUE_NONE)
+            ->addOption('without-output-walkers', '', InputOption::VALUE_NONE)
+            ->addOption('with-order-by', '', InputOption::VALUE_NONE)
+            ->addOption('limit', '', InputOption::VALUE_REQUIRED);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $category = $input->getArgument('category');
-        $withDoubleJoin = (bool)$input->getOption('with-double-join');
+        $withDoubleJoin = $input->getOption('with-double-join');
+        $withOutputWalkers = $input->getOption('with-output-walkers');
+        $withoutOutputWalkers = $input->getOption('without-output-walkers');
+        $useOutputWalkers = ($withOutputWalkers xor $withoutOutputWalkers) ? $withOutputWalkers : null;
+        $fetchJoinCollection = $input->getOption('fetch-join-collection');
+        $withOrderBy = $input->getOption('with-order-by');
+        $limit = (int)$input->getOption('limit');
 
         if (null === $category) {
             $products = $this->productRepository->findAll();
@@ -51,12 +63,18 @@ final class ProductListCommand extends Command
         }
 
         if ($withDoubleJoin) {
-            $qb = $this->productRepository->createCategoryListQueryBuilderWithDoubleJoin($category);
+            $qb = $this->productRepository->createCategoryListQueryBuilderWithDoubleJoin($category, $withOrderBy);
         } else {
-            $qb = $this->productRepository->createCategoryListQueryBuilder($category);
+            $qb = $this->productRepository->createCategoryListQueryBuilder($category, $withOrderBy);
         }
 
-        $products = $qb->getQuery()->getResult();
+        if ($limit) {
+            $qb->setMaxResults($limit);
+        }
+
+        $paginator = new Paginator($qb, $fetchJoinCollection);
+        $paginator->setUseOutputWalkers($useOutputWalkers);
+        $products = iterator_to_array($paginator->getIterator());
 
         $this->displayProducts($products, $input, $output);
     }
@@ -68,21 +86,22 @@ final class ProductListCommand extends Command
      */
     private function displayProducts(array $products, InputInterface $input, OutputInterface $output): void
     {
+        $headers = ['id', 'code', 'fetched-categories (position)', 'actual-categories (position)'];
         $rows = array_map(function (Product $product) {
             $fetchedCategories = $this->getCategories($product);
             $this->productRepository->refresh($product);
             $actualCategories = $this->getCategories($product);
 
             return [
-                'id' => $product->getId(),
-                'code' => $product->getCode(),
-                'fetched-categories' => implode(', ', $fetchedCategories),
-                'actual-categories' => implode(', ', $actualCategories),
+                $product->getId(),
+                $product->getCode(),
+                implode(', ', $fetchedCategories),
+                implode(', ', $actualCategories),
             ];
         }, $products);
 
         $io = new SymfonyStyle($input, $output);
-        $io->table(array_keys($rows[0]), $rows);
+        $io->table($headers, $rows);
     }
 
     /**
@@ -93,7 +112,7 @@ final class ProductListCommand extends Command
     private function getCategories(Product $product): array
     {
         return $product->getProductCategories()->map(function (ProductCategory $productCategory) {
-            return $productCategory->getCategory()->getCode();
+            return sprintf('%s (%d)', $productCategory->getCategory()->getCode(), $productCategory->getPosition());
         })->toArray();
     }
 }

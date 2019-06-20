@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ProductCategoryRepository")
@@ -25,8 +26,15 @@ class ProductCategory
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Category")
      * @ORM\JoinColumn(nullable=false)
+     * @Gedmo\SortableGroup
      */
     private $category;
+
+    /**
+     * @ORM\Column(type="integer")
+     * @Gedmo\SortablePosition
+     */
+    private $position;
 
     public function getId(): ?int
     {
@@ -53,6 +61,18 @@ class ProductCategory
     public function setCategory(?Category $category): self
     {
         $this->category = $category;
+
+        return $this;
+    }
+
+    public function getPosition(): ?int
+    {
+        return $this->position;
+    }
+
+    public function setPosition(int $position): self
+    {
+        $this->position = $position;
 
         return $this;
     }

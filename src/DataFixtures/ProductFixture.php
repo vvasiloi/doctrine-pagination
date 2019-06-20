@@ -13,7 +13,7 @@ class ProductFixture extends Fixture
     {
         $categories = range(1, 5);
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             $product = new Product();
             $product->setCode('product-'.$i);
             $manager->persist($product);

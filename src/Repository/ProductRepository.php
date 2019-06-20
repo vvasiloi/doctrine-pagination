@@ -22,31 +22,50 @@ class ProductRepository extends ServiceEntityRepository
 
     /**
      * @param string $categoryCode
+     * @param bool   $withOrderBy
      *
      * @return QueryBuilder
      */
-    public function createCategoryListQueryBuilder(string $categoryCode): QueryBuilder
+    public function createCategoryListQueryBuilder(string $categoryCode, bool $withOrderBy = false): QueryBuilder
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->addSelect('productCategory')
-            ->addSelect('category')
             ->innerJoin('p.productCategories', 'productCategory')
             ->innerJoin('productCategory.category', 'category')
             ->where('category.code = :categoryCode')
             ->setParameter('categoryCode', $categoryCode)
         ;
+
+        if ($withOrderBy) {
+            $qb->orderBy('productCategory.position');
+        }
+
+        return $qb;
     }
 
-    public function createCategoryListQueryBuilderWithDoubleJoin(string $categoryCode): QueryBuilder
+    /**
+     * @param string $categoryCode
+     * @param bool   $withOrderBy
+     *
+     * @return QueryBuilder
+     */
+    public function createCategoryListQueryBuilderWithDoubleJoin(string $categoryCode, bool $withOrderBy = false): QueryBuilder
     {
-        return $this->createQueryBuilder('p')
-            ->addSelect('fullProductCategory')
+        $qb = $this->createQueryBuilder('p')
+            ->addSelect('productCategory')
             ->innerJoin('p.productCategories', 'productCategory')
-            ->innerJoin('p.productCategories', 'fullProductCategory')
-            ->innerJoin('productCategory.category', 'category')
+            ->innerJoin('p.productCategories', 'productCategoryFilter')
+            ->innerJoin('productCategoryFilter.category', 'category')
             ->where('category.code = :categoryCode')
+            ->orderBy('productCategoryFilter.position')
             ->setParameter('categoryCode', $categoryCode)
         ;
+
+        if ($withOrderBy) {
+            $qb->orderBy('productCategoryFilter.position');
+        }
+
+        return $qb;
     }
 
     /**
