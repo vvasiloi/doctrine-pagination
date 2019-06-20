@@ -4,3 +4,4 @@
 - `php bin/console doctrine:schema:create`
 - `php bin/console doctrine:fixtures:load`
 - `php bin/console product:list category-1`
+- `php bin/console product:list --with-double-join category-1`

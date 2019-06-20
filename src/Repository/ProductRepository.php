@@ -2,7 +2,6 @@
 
 namespace App\Repository;
 
-use App\Entity\Category;
 use App\Entity\Product;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -32,6 +31,18 @@ class ProductRepository extends ServiceEntityRepository
             ->addSelect('productCategory')
             ->addSelect('category')
             ->innerJoin('p.productCategories', 'productCategory')
+            ->innerJoin('productCategory.category', 'category')
+            ->where('category.code = :categoryCode')
+            ->setParameter('categoryCode', $categoryCode)
+        ;
+    }
+
+    public function createCategoryListQueryBuilderWithDoubleJoin(string $categoryCode): QueryBuilder
+    {
+        return $this->createQueryBuilder('p')
+            ->addSelect('fullProductCategory')
+            ->innerJoin('p.productCategories', 'productCategory')
+            ->innerJoin('p.productCategories', 'fullProductCategory')
             ->innerJoin('productCategory.category', 'category')
             ->where('category.code = :categoryCode')
             ->setParameter('categoryCode', $categoryCode)
