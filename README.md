@@ -1,0 +1,6 @@
+- `docker run --name symfony-mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=symfony -e MYSQL_USER=symfony -e MYSQL_PASSWORD=symfony -p "33060:3306" -d mysql:5.7`
+- set the proper database host in `.env` (it differs depending on the host and Docker setup)
+- `composer install`
+- `php bin/console doctrine:schema:create`
+- `php bin/console doctrine:fixtures:load`
+- `php bin/console product:list category-1`
